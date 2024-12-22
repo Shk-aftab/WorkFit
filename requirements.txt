@@ -1,0 +1,6 @@
+flask
+flask-sqlalchemy
+mediapipe
+opencv-python
+numpy
+sqlalchemy

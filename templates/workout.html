@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Workout Tracker</title>
+    <style>
+        #video-feed {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin: 2%;">
+
+
+        <h5>{{ exercise.name }} Workout</h5>
+        <div>
+            <h4>Target Reps: {{ exercise.target_reps }}</h4>
+            <h4 id="current-reps">Current Reps: 0</h4>
+        </div>
+        <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Workout Video Feed" style="max-width: 100%; height: auto;">
+        <br>
+        <br>
+
+
+        <button id="end-workout" class="btn btn-primary">End Workout</button>
+    </div>
+</body>
+</html>

@@ -1,0 +1,249 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+
+
+<nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <a class="navbar-brand" href="#">WorkFit AI</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor01"
+            aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarColor01">
+            <a class="navbar-brand" href="#">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"
+                    style="height: 40px; margin-right: 15px;">
+            </a>
+            <div class="ms-auto">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('logout') }}"  class="d-flex" method="post">
+                    <button type="submit" class="btn btn-light my-2 my-sm-0">Logout</button>
+                </form>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cssfile.css') }}">
+
+</br>
+
+
+<div class="container-fluid" style="margin: 1.5%;">
+
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" data-bs-toggle="tab" href="#home" aria-selected="true" role="tab">Home</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" data-bs-toggle="tab" href="#calendar" aria-selected="false" role="tab"
+                tabindex="-1">Calendar</a>
+        </li>
+
+    </ul>
+    <div id="myTabContent" class="tab-content">
+        <div class="tab-pane fade active show" id="home" role="tabpanel">
+
+        </br>
+
+            {% if show_reminder and incomplete_workouts %}
+    <div class="alert alert-dismissible alert-danger">
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong>Oh snap!</strong> You have incomplete workouts for today:
+        <ul>
+            {% for workout in incomplete_workouts %}
+                <li>{{ workout.exercise_name }}: {{ workout.remaining_reps }} reps remaining</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+
+            <p></p>
+            <form id="workout-form" action="/start_workout" method="post">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <label for="exercise_id" class="form-label mt-4">Choose your workout:</label>
+                            <select class="form-select" id="exercise_id" name="exercise_id" required>
+                                {% for workout in daily_workouts %}
+                                    {% if workout.is_completed %}
+                                        <option value="{{ workout.exercise_id }}" disabled>
+                                            {{ workout.exercise_name }} ({{ workout.target_reps }} reps) - Completed
+                                        </option>
+                                    {% else %}
+                                        <option value="{{ workout.exercise_id }}">
+                                            {{ workout.exercise_name }} ({{ workout.remaining_reps }} reps remaining)
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+
+                        </div>
+                        <div class="col-4 d-flex justify-content-bottom">
+                            <button type="submit" class="btn btn-primary" style="margin-top: 12%;">Start Workout</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        
+            <div id="workout-content" style="display: none;"></div> <!-- Placeholder for workout content -->
+        
+            <script>
+                document.getElementById('workout-form').addEventListener('submit', function(event) {
+                    event.preventDefault(); // Prevent default form submission
+                    const formData = new FormData(this);
+        
+                    fetch('/start_workout', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            const content = `
+                                <div class="d-flex flex-column align-items-center">
+                                    <br><br>
+                                    <!-- <h4>${data.exercise.name} Workout</h4> -->
+                                    <!-- <h5>Target Reps: ${data.exercise.target_reps}</h5> -->
+                                    <!-- <h5 id="current-reps">Current Reps: 0</h5> -->
+                                    <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Workout Video Feed" style="max-width: 70%; height: auto;">
+                                    <br><br>
+                                    <button id="end-workout" class="btn btn-primary">End Workout</button>
+                                </div>
+                            `;
+                            document.getElementById('workout-content').innerHTML = content;
+                            document.getElementById('workout-content').style.display = 'block';
+        
+                            attachEndWorkoutListener();
+                        } else {
+                            alert("Error: " + data.message);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+        
+                function attachEndWorkoutListener() {
+                    const endWorkoutButton = document.getElementById('end-workout');
+                    if (endWorkoutButton) {
+                        endWorkoutButton.addEventListener('click', function() {
+                            fetch('/end_workout', { method: 'POST' })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === "success") {
+                                    alert(`Workout completed! Total Reps: ${data.reps}`);
+                                    window.location.href = '/';
+                                } else {
+                                    alert("Error ending workout: " + data.message);
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                        });
+                    }
+                }
+            </script>
+        </div>
+        
+        <div class="tab-pane fade" id="calendar" role="tabpanel">
+            <div id="calendar">
+                <h2 class="text-center">Workout Calendar</h2>
+                <table class="table table-bordered" id="calendar-table">
+                    <thead>
+                        <tr>
+                            <th>Sunday</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Content will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        
+            <script>
+                document.querySelector('[href="#calendar"]').addEventListener('click', function (event) {
+                    event.preventDefault(); // Prevent default tab behavior
+                    loadCalendar();
+                });
+        
+                function loadCalendar() {
+                    fetch('/calendar')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === "success") {
+                                renderCalendar(data.calendar_data, data.days_in_month, data.start_weekday);
+                            } else {
+                                alert("Error loading calendar: " + data.message);
+                            }
+                        })
+                        .catch(error => console.error("Error:", error));
+                }
+        
+                function renderCalendar(calendarData, daysInMonth, startWeekday) {
+                    const tbody = document.querySelector("#calendar-table tbody");
+                    tbody.innerHTML = ""; // Clear existing calendar
+        
+                    let currentDay = 1; // Start from the first day of the month
+                    // Adjust for the starting weekday
+                    for (let week = 0; week < 6; week++) { // Up to 6 weeks in a month
+                        const row = document.createElement("tr");
+                        for (let day = 0; day < 7; day++) {
+                            const cell = document.createElement("td");
+                            if (week === 0 && day < startWeekday) {
+                                // If it's the first week and before the start day, leave the cell empty
+                                cell.innerHTML = ""; 
+                            } else if (currentDay > daysInMonth) {
+                                // If we've gone past the last day of the month, leave the cell empty
+                                cell.innerHTML = ""; 
+                            } else {
+                                const date = new Date(new Date().getFullYear(), new Date().getMonth(), currentDay);
+                                const dateKey = date.toISOString().split("T")[0]; // Format to YYYY-MM-DD
+        
+                                const dayDiv = document.createElement("div");
+                                dayDiv.classList.add("day");
+                                dayDiv.innerHTML = `<h5>${currentDay - 1}</h5>`; // Shift display by one day
+        
+                                // Add workouts for the date
+                                if (calendarData[dateKey]) {
+                                    calendarData[dateKey].forEach(workout => {
+                                        const workoutDiv = document.createElement("div");
+                                        workoutDiv.classList.add("workout", workout.is_completed ? "completed" : "pending");
+                                        workoutDiv.innerHTML = `
+                                            <span>${workout.exercise_name}</span>
+                                            <small>Reps: ${workout.completed_reps}/${workout.target_reps}</small>
+                                        `;
+                                        dayDiv.appendChild(workoutDiv);
+                                    });
+                                } else {
+                                    dayDiv.innerHTML += `<p>No Workouts</p>`;
+                                }
+        
+                                cell.appendChild(dayDiv);
+                                currentDay++; // Increment currentDay only when a valid day is rendered
+                            }
+                            row.appendChild(cell);
+                        }
+                        tbody.appendChild(row);
+                    }
+                }
+            </script>
+        </div>
+        
+
+    </div>
+</div>
+
+
+
+
+
+
+
+{% endblock %}
